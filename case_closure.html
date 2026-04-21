@@ -255,46 +255,77 @@
     </div>
 
     <script>
+        // 1. SCRIPT AUTO-RESIZE UNTUK SEMUA TEXTAREA
+        // Cari semua textarea yang punya class "dynamic-input" atau tag textarea biasa
+        const tx = document.querySelectorAll("textarea");
+        for (let i = 0; i < tx.length; i++) {
+            // Set style awal agar hidden overflow
+            tx[i].style.overflowY = "hidden";
+            tx[i].style.resize = "none"; 
+            tx[i].style.height = "auto";
+            tx[i].style.height = (tx[i].scrollHeight) + "px";
+            
+            // Tambahkan event listener saat mengetik
+            tx[i].addEventListener("input", function() {
+                this.style.height = "auto";
+                this.style.height = (this.scrollHeight) + "px";
+            }, false);
+        }
+
+        // 2. MODIFIKASI FUNGSI SAVE IMAGE (Agar support textarea panjang)
+        // Ganti fungsi saveAsImage() atau tombol save kamu dengan logika ini
         function saveAsImage() {
-            const container = document.getElementById("captureArea");
+            // Pilih area kertas (pastikan ID nya benar, misal 'captureArea' atau 'page-container')
+            const container = document.querySelector('.page-container') || document.getElementById('captureArea');
+            const btn = document.querySelector('.btn-png') || document.querySelector('button');
 
-            // 1. Kunci Input Text & Date
-            const inputs = container.querySelectorAll('input[type="text"], input[type="date"]');
-            inputs.forEach(input => {
-                input.setAttribute('value', input.value);
+            const originalText = btn.innerText;
+            btn.innerText = "Processing...";
+
+            // Ubah TEXTAREA menjadi DIV sementara agar text penuh terlihat di screenshot
+            const textareas = container.querySelectorAll('textarea');
+            textareas.forEach(t => {
+                t.innerHTML = t.value; 
             });
 
-            // 2. Kunci Status Checkbox (Clearance Code)
-            const checkboxes = container.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(box => {
-                if(box.checked) {
-                    box.setAttribute('checked', 'checked');
+            // Ubah INPUT menjadi attribute value
+            const inputs = container.querySelectorAll('input');
+            inputs.forEach(i => {
+                if(i.type === 'checkbox' || i.type === 'radio'){
+                    if(i.checked) i.setAttribute('checked', 'checked');
                 } else {
-                    box.removeAttribute('checked');
+                    i.setAttribute('value', i.value);
                 }
             });
 
-            // 3. Generate Gambar
             html2canvas(container, {
-                scale: 2,
+                scale: 2, 
                 backgroundColor: "#ffffff",
-                height: container.scrollHeight, 
-                windowHeight: container.scrollHeight,
                 useCORS: true,
-                allowTaint: true
+                // PENTING: Ambil tinggi penuh scrollHeight agar yang di bawah tidak terpotong
+                height: container.scrollHeight, 
+                windowHeight: container.scrollHeight
             }).then(canvas => {
-                try {
-                    let link = document.createElement('a');
-                    link.download = 'LSSD_Case_Closure_' + Date.now() + '.png';
-                    link.href = canvas.toDataURL("image/png");
-                    link.click();
-                } catch (e) {
-                    alert("Gagal menyimpan. Browser memblokir gambar lokal.");
-                }
+                const link = document.createElement('a');
+                // Nama file otomatis sesuai judul dokumen
+                const docTitle = document.title || 'Document';
+                link.download = docTitle.replace(/ /g, '_') + '_' + Date.now() + '.png';
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                
+                btn.innerText = originalText;
             }).catch(err => {
                 console.error(err);
                 alert("Gagal menyimpan gambar.");
+                btn.innerText = originalText;
             });
+        }
+        
+        // Pasang fungsi saveAsImage ke tombol jika belum terpasang
+        // (Opsional, jika tombol sudah ada onclick="saveAsImage()" tidak perlu ini)
+        const btnPng = document.querySelector('.btn-png');
+        if(btnPng) {
+            btnPng.onclick = saveAsImage;
         }
     </script>
 
